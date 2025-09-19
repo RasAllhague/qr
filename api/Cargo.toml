@@ -4,8 +4,13 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+service = { path = "../service" }
+
 poem = "3.1.12"
-poem-openapi = { version = "5.1.16", features = ["swagger-ui", "uuid"] }
+poem-openapi = { version = "5.1.16", features = ["swagger-ui", "url", "uuid"] }
+serde = { version = "1.0.225", features = ["derive"] }
 tokio = { version = "1.47.1", features = ["macros", "rt-multi-thread"] }
 tracing-subscriber = "0.3.20"
+url = "2.5.7"
 uuid = { version = "1.18.1", features = ["v4"] }
+tracing = "0.1.41"

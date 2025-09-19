@@ -1,14 +1,6 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+mod qrcode;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub use qrcode::{QrCodeDatabase, QrCodeGenerator};
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub static PACKAGE_VERSION: &str = env!("CARGO_PKG_VERSION");
+pub static PACKAGE_NAME: &str = env!("CARGO_PKG_NAME");

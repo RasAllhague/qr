@@ -4,3 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+image = { version = "0.25.8", features = ["png"] }
+qrcode = "0.14.1"
+url = "2.5.7"
+uuid = { version = "1.18.1", features = ["v4"] }
+tokio = { version = "1.47.1", features = ["macros", "rt-multi-thread", "sync"] }
+thiserror = "2.0.16"
