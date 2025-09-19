@@ -1,4 +1,5 @@
 mod services;
+mod config;
 
 use std::{collections::HashMap, path::Path, sync::Arc};
 
@@ -7,7 +8,7 @@ use poem_openapi::OpenApiService;
 use service::{QrCodeDatabase, QrCodeGenerator};
 use tokio::sync::Mutex;
 
-use crate::services::{HealthApi, QrCodeApi, RedirectApi, VersionApi};
+use crate::{config::AppConfig, services::{HealthApi, QrCodeApi, RedirectApi, VersionApi}};
 
 pub static PACKAGE_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub static PACKAGE_NAME: &str = env!("CARGO_PKG_NAME");
@@ -18,6 +19,8 @@ async fn main() -> Result<(), std::io::Error> {
         unsafe { std::env::set_var("RUST_LOG", "poem=debug") };
     }
     tracing_subscriber::fmt::init();
+
+    let app_config = AppConfig::load("./config.json").await.expect("App config file not present!");
 
     let links = Arc::new(Mutex::new(HashMap::new()));
     let qr_code_database = QrCodeDatabase {
@@ -36,7 +39,7 @@ async fn main() -> Result<(), std::io::Error> {
     .server("/api");
     let ui = api_service.swagger_ui();
 
-    Server::new(TcpListener::bind("localhost:3000"))
+    Server::new(TcpListener::bind(&app_config.server_endpoint))
         .run(
             Route::new()
                 .nest("/api", api_service)
