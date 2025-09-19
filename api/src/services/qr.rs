@@ -2,7 +2,7 @@ use poem::web::Data;
 use poem_openapi::{
     ApiResponse, Object, OpenApi,
     param::Path,
-    payload::{Binary, Json, PlainText, Response},
+    payload::{Binary, Json, PlainText},
 };
 use service::{QrCodeDatabase, QrCodeGenerator};
 use url::Url;
