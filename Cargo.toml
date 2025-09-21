@@ -1,3 +1,3 @@
 [workspace]
-members = ["api", "bot", "entity", "migrations", "service", "corelib"]
+members = ["api", "bot", "entity", "migration", "service", "corelib"]
 resolver = "3"
