@@ -1,4 +1,4 @@
-use poem::{IntoResponse, web::Data};
+use poem::web::Data;
 use poem_openapi::{
     ApiResponse, Enum, OpenApi,
     param::{Path, Query},
