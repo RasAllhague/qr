@@ -2,9 +2,11 @@ use poem::web::Data;
 use poem_openapi::{
     ApiResponse, Object, OpenApi,
     param::Path,
-    payload::{Binary, Json, PlainText},
+    payload::{Json, PlainText},
+    types::ToJSON,
 };
-use service::{QrCodeDatabase, QrCodeGenerator};
+use service::QrCodeDatabase;
+use tracing::error;
 use url::Url;
 use uuid::Uuid;
 
@@ -22,9 +24,9 @@ struct QrCodePutRequest {
 }
 
 #[derive(ApiResponse)]
-enum QrCodeImageResponse {
-    #[oai(status = 200, content_type = "image/png")]
-    Ok(Binary<Vec<u8>>),
+enum QrCodeTextResponse<T: Into<String> + Send + Sync + 'static> {
+    #[oai(status = 200)]
+    Ok(PlainText<T>),
 
     #[oai(status = 404)]
     NotFound(PlainText<String>),
@@ -34,9 +36,9 @@ enum QrCodeImageResponse {
 }
 
 #[derive(ApiResponse)]
-enum QrCodeTextResponse<T: Into<String> + Send + Sync + 'static> {
+enum QrCodeJsonResponse<T: ToJSON + Send + Sync + 'static> {
     #[oai(status = 200)]
-    Ok(PlainText<T>),
+    Ok(Json<T>),
 
     #[oai(status = 404)]
     NotFound(PlainText<String>),
@@ -57,6 +59,22 @@ enum QrCodeDeleteResponse {
     InternalError(PlainText<String>),
 }
 
+#[derive(Object, Debug)]
+pub struct QrCodeResponse {
+    pub id: Uuid,
+    pub link: String,
+    pub passphrase: Option<String>,
+}
+
+#[derive(ApiResponse)]
+pub enum QrCodeCreateResponse {
+    #[oai(status = 201)]
+    Created(Json<QrCodeResponse>),
+
+    #[oai(status = 500)]
+    Database(PlainText<String>),
+}
+
 pub struct QrCodeApi;
 
 #[OpenApi]
@@ -66,23 +84,20 @@ impl QrCodeApi {
         &self,
         Data(database): Data<&QrCodeDatabase>,
         Json(request): Json<QrCodePostRequest>,
-    ) -> PlainText<Uuid> {
-        let new_id = database.create(request.link).await.unwrap();
-
-        PlainText(new_id)
-    }
-
-    #[oai(path = "/qr/image", method = "post", tag = "ApiTags::QrCode")]
-    async fn create_image(
-        &self,
-        Data(database): Data<&QrCodeDatabase>,
-        Data(generator): Data<&QrCodeGenerator>,
-        Json(request): Json<QrCodePostRequest>,
-    ) -> Binary<Vec<u8>> {
-        let new_id = database.create(request.link).await.unwrap();
-        let image = generator.generate(new_id).await.unwrap().unwrap();
-
-        Binary(image)
+    ) -> QrCodeCreateResponse {
+        match database.create(request.link).await {
+            Ok(m) => QrCodeCreateResponse::Created(Json(QrCodeResponse {
+                id: m.id,
+                link: m.link,
+                passphrase: Some(m.passphrase),
+            })),
+            Err(why) => {
+                error!("Failed to create new qr code, {why}");
+                return QrCodeCreateResponse::Database(PlainText(
+                    "Could not create qr code because of an internal error.".to_string(),
+                ));
+            }
+        }
     }
 
     #[oai(path = "/qr/:id", method = "get", tag = "ApiTags::QrCode")]
@@ -90,30 +105,17 @@ impl QrCodeApi {
         &self,
         Data(database): Data<&QrCodeDatabase>,
         Path(id): Path<Uuid>,
-    ) -> QrCodeTextResponse<Url> {
+    ) -> QrCodeJsonResponse<QrCodeResponse> {
         match database.get(id).await {
-            Ok(Some(l)) => QrCodeTextResponse::Ok(PlainText(l)),
-            Ok(None) => QrCodeTextResponse::NotFound(PlainText(
+            Ok(Some(model)) => QrCodeJsonResponse::Ok(Json(QrCodeResponse {
+                id: model.id,
+                link: model.link,
+                passphrase: None,
+            })),
+            Ok(None) => QrCodeJsonResponse::NotFound(PlainText(
                 "No qr code could be found for this id.".to_string(),
             )),
-            Err(_) => QrCodeTextResponse::InternalError(PlainText(
-                "Could not retrieve qr code information, because of an internal error.".to_string(),
-            )),
-        }
-    }
-
-    #[oai(path = "/qr/:id/image", method = "get", tag = "ApiTags::QrCode")]
-    async fn get_image(
-        &self,
-        Data(generator): Data<&QrCodeGenerator>,
-        Path(id): Path<Uuid>,
-    ) -> QrCodeImageResponse {
-        match generator.generate(id).await {
-            Ok(Some(data)) => QrCodeImageResponse::Ok(Binary(data)),
-            Ok(None) => QrCodeImageResponse::NotFound(PlainText(
-                "No qr code could be found for this id.".to_string(),
-            )),
-            Err(_) => QrCodeImageResponse::InternalError(PlainText(
+            Err(_) => QrCodeJsonResponse::InternalError(PlainText(
                 "Could not retrieve qr code information, because of an internal error.".to_string(),
             )),
         }
@@ -127,7 +129,7 @@ impl QrCodeApi {
         Path(id): Path<Uuid>,
     ) -> QrCodeTextResponse<Uuid> {
         match database.update(id, request.password, request.link).await {
-            Ok(Some(id)) => QrCodeTextResponse::Ok(PlainText(id)),
+            Ok(Some(model)) => QrCodeTextResponse::Ok(PlainText(model.id)),
             Ok(None) => QrCodeTextResponse::NotFound(PlainText(
                 "No qr code could be found for this id.".to_string(),
             )),

@@ -1,9 +1,15 @@
-use std::{collections::HashMap, path::PathBuf, sync::Arc};
+use std::path::PathBuf;
 
-use image::{ImageEncoder, ImageError, Luma, codecs::png::PngEncoder};
-use qrcode::{QrCode, types::QrError};
+use ::entity::qr_code::{self, Entity as DbQrCode};
+use chrono::Utc;
+use entity::qr_code::{ActiveModel, Model};
+use image::{
+    ImageEncoder, ImageError, Luma,
+    codecs::{jpeg::JpegEncoder, png::PngEncoder},
+};
+use qrcode::{QrCode, render::svg, types::QrError};
+use sea_orm::{ActiveModelTrait, ActiveValue::Set, DbConn, DbErr, EntityTrait};
 use thiserror::Error;
-use tokio::sync::Mutex;
 use url::Url;
 use uuid::Uuid;
 
@@ -13,23 +19,30 @@ pub enum QrGeneratorError {
     QrError(#[from] QrError),
     #[error("qr code image saving failed, {0}")]
     ImageError(#[from] ImageError),
+    #[error("database operation failed, {0}")]
+    DataBaseError(#[from] DbErr),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum QrImageType {
+    Png,
+    Jpg,
+    Svg,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct QrCodeGenerator {
-    pub links: Arc<Mutex<HashMap<Uuid, (String, Url)>>>,
+    pub db_conn: DbConn,
     pub image_base_path: PathBuf,
 }
 
 impl QrCodeGenerator {
     pub async fn generate_and_save(&self, id: Uuid) -> Result<Option<String>, QrGeneratorError> {
-        let links = self.links.lock().await;
-
-        let Some((_, link)) = links.get(&id) else {
+        let Some(qr_code) = DbQrCode::find_by_id(id).one(&self.db_conn).await? else {
             return Ok(None);
         };
 
-        let code = QrCode::new(link.as_str())?;
+        let code = QrCode::new(qr_code.link)?;
         let image = code.render::<Luma<u8>>().build();
 
         let mut path = self.image_base_path.clone();
@@ -40,14 +53,16 @@ impl QrCodeGenerator {
         Ok(path.to_str().map(|x| x.to_string()))
     }
 
-    pub async fn generate(&self, id: Uuid) -> Result<Option<Vec<u8>>, QrGeneratorError> {
-        let links = self.links.lock().await;
-
-        let Some((_, link)) = links.get(&id) else {
+    pub async fn generate(
+        &self,
+        id: Uuid,
+        image_type: QrImageType,
+    ) -> Result<Option<Vec<u8>>, QrGeneratorError> {
+        let Some(qr_code) = DbQrCode::find_by_id(id).one(&self.db_conn).await? else {
             return Ok(None);
         };
 
-        let code = QrCode::new(link.as_str())?;
+        let code = QrCode::new(qr_code.link)?;
 
         let image = code.render::<Luma<u8>>().build();
         let height = image.height();
@@ -58,8 +73,26 @@ impl QrCodeGenerator {
         let data = image.into_raw();
 
         let mut png_bytes = Vec::new();
-        let encoder = PngEncoder::new(&mut png_bytes);
-        encoder.write_image(&data, width, height, image::ExtendedColorType::L8)?;
+
+        match image_type {
+            QrImageType::Png => {
+                let encoder = PngEncoder::new(&mut png_bytes);
+                encoder.write_image(&data, width, height, image::ExtendedColorType::L8)?;
+            }
+            QrImageType::Jpg => {
+                let encoder = JpegEncoder::new(&mut png_bytes);
+                encoder.write_image(&data, width, height, image::ExtendedColorType::L8)?;
+            }
+            QrImageType::Svg => {
+                let svg_str = code
+                    .render::<svg::Color>()
+                    .min_dimensions(200, 200)
+                    .dark_color(svg::Color("#000000"))
+                    .light_color(svg::Color("#ffffff"))
+                    .build();
+                png_bytes = svg_str.into_bytes();
+            }
+        };
 
         Ok(Some(png_bytes))
     }
@@ -67,23 +100,30 @@ impl QrCodeGenerator {
 
 #[derive(Clone, Debug, Default)]
 pub struct QrCodeDatabase {
-    pub links: Arc<Mutex<HashMap<Uuid, (String, Url)>>>,
+    pub db_conn: DbConn,
 }
 
 impl QrCodeDatabase {
-    pub async fn create(&self, link: Url) -> Result<Uuid, ()> {
-        let mut db = self.links.lock().await;
+    pub async fn create(&self, link: Url) -> Result<Model, DbErr> {
+        let qr_code = qr_code::ActiveModel {
+            id: Set(uuid::Uuid::new_v4()),
+            link: Set(link.to_string()),
+            passphrase: Set("TestPwd".to_string()),
+            created_at: Set(Utc::now()),
+            ..Default::default()
+        }
+        .insert(&self.db_conn)
+        .await?;
 
-        let new_id = Uuid::new_v4();
-        db.insert(new_id, ("TestPwd".to_string(), link));
-
-        Ok(new_id)
+        Ok(qr_code)
     }
 
-    pub async fn get(&self, id: Uuid) -> Result<Option<Url>, ()> {
-        let db = self.links.lock().await;
+    pub async fn get(&self, id: Uuid) -> Result<Option<Model>, DbErr> {
+        let Some(qr_code) = DbQrCode::find_by_id(id).one(&self.db_conn).await? else {
+            return Ok(None);
+        };
 
-        Ok(db.get(&id).map(|(_, link)| link.clone()))
+        Ok(Some(qr_code))
     }
 
     pub async fn update(
@@ -91,29 +131,34 @@ impl QrCodeDatabase {
         id: Uuid,
         passphrase: String,
         link: Url,
-    ) -> Result<Option<Uuid>, ()> {
-        let mut db = self.links.lock().await;
+    ) -> Result<Option<Model>, DbErr> {
+        let Some(qr_code) = DbQrCode::find_by_id(id).one(&self.db_conn).await? else {
+            return Ok(None);
+        };
 
-        if let Some((pass, old_link)) = db.get_mut(&id)
-            && pass.clone() == passphrase
-        {
-            *old_link = link;
-            return Ok(Some(id));
+        if qr_code.passphrase != passphrase {
+            return Ok(None);
         }
 
-        return Ok(None);
+        let mut active: ActiveModel = qr_code.into();
+        active.link = Set(link.to_string());
+        active.modified_at = Set(Some(Utc::now()));
+        let qr_code = active.update(&self.db_conn).await?;
+
+        Ok(Some(qr_code))
     }
 
-    pub async fn delete(&self, id: Uuid, passphrase: String) -> Result<Option<Url>, ()> {
-        let mut db = self.links.lock().await;
+    pub async fn delete(&self, id: Uuid, passphrase: String) -> Result<Option<Model>, DbErr> {
+        let Some(qr_code) = DbQrCode::find_by_id(id).one(&self.db_conn).await? else {
+            return Ok(None);
+        };
 
-        if let Some((pass, _)) = db.get_mut(&id)
-            && pass.clone() == passphrase
-        {
-            let removed = db.remove(&id).map(|(_, l)| l);
-            return Ok(removed);
+        if qr_code.passphrase != passphrase {
+            return Ok(None);
         }
 
-        Ok(None)
+        DbQrCode::delete_by_id(id).exec(&self.db_conn).await?;
+
+        Ok(Some(qr_code))
     }
 }

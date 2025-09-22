@@ -1,6 +1,7 @@
 use poem::web::Data;
 use poem_openapi::{ApiResponse, OpenApi, param::Query, payload::PlainText};
 use service::QrCodeDatabase;
+use tracing::error;
 use url::Url;
 use uuid::Uuid;
 
@@ -12,6 +13,10 @@ enum RedirectResponse {
     Redirect(#[oai(header = "Location")] Url),
     #[oai(status = 404)]
     NotFound(PlainText<String>),
+    #[oai(status = 500)]
+    DatabaseError(PlainText<String>),
+    #[oai(status = 500)]
+    InvalidUrl(PlainText<String>),
 }
 
 pub struct RedirectApi;
@@ -24,14 +29,27 @@ impl RedirectApi {
         Data(database): Data<&QrCodeDatabase>,
         Query(id): Query<Uuid>,
     ) -> RedirectResponse {
-        let locked_database = database.links.lock().await;
-
-        if let Some((_, url)) = locked_database.get(&id) {
-            return RedirectResponse::Redirect(url.clone());
+        match database
+            .get(id)
+            .await
+            .map(|x| x.map(|y| url::Url::parse(&y.link)))
+        {
+            Ok(Some(Ok(url))) => RedirectResponse::Redirect(url),
+            Ok(Some(Err(why))) => {
+                error!("Could not redirect user because of an malformed url, {why}");
+                return RedirectResponse::InvalidUrl(PlainText(
+                    "The redirect url is broken.".to_string(),
+                ));
+            }
+            Ok(None) => RedirectResponse::NotFound(PlainText(
+                "The requested qr code id could not be found.".to_string(),
+            )),
+            Err(why) => {
+                error!("Could not redirect user because of {why}");
+                return RedirectResponse::DatabaseError(PlainText(
+                    "The redirection failed because of an internal error.".to_string(),
+                ));
+            }
         }
-
-        RedirectResponse::NotFound(PlainText(
-            "The requested qr code id could not be found.".to_string(),
-        ))
     }
 }

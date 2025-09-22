@@ -127,6 +127,9 @@ checksum = "b0674a1ddeecb70197781e945de4b3b8ffb61fa939a5597bcf48503737663100"
 name = "api"
 version = "0.1.0"
 dependencies = [
+ "chrono",
+ "entity",
+ "migration",
  "poem",
  "poem-openapi",
  "serde",
@@ -587,8 +590,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "145052bdd345b87320e369255277e3fb5152762ad123a901ef5c262dd38fe8d2"
 dependencies = [
  "iana-time-zone",
+ "js-sys",
  "num-traits",
  "serde",
+ "wasm-bindgen",
  "windows-link 0.2.0",
 ]
 
@@ -1880,7 +1885,6 @@ name = "migration"
 version = "0.1.0"
 dependencies = [
  "async-std",
- "entity",
  "sea-orm-migration",
 ]
 
@@ -3101,8 +3105,12 @@ dependencies = [
 name = "service"
 version = "0.1.0"
 dependencies = [
+ "chrono",
+ "entity",
  "image",
  "qrcode",
+ "sea-orm",
+ "serde",
  "thiserror 2.0.16",
  "tokio",
  "url",

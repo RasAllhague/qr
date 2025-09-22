@@ -1,14 +1,12 @@
 mod services;
 mod config;
 
-use std::{collections::HashMap, path::Path, sync::Arc};
-
+use migration::sea_orm::Database;
 use poem::{EndpointExt, Route, Server, listener::TcpListener};
 use poem_openapi::OpenApiService;
 use service::{QrCodeDatabase, QrCodeGenerator};
-use tokio::sync::Mutex;
 
-use crate::{config::AppConfig, services::{HealthApi, QrCodeApi, RedirectApi, VersionApi}};
+use crate::{config::AppConfig, services::{HealthApi, ImageApi, QrCodeApi, RedirectApi, VersionApi}};
 
 pub static PACKAGE_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub static PACKAGE_NAME: &str = env!("CARGO_PKG_NAME");
@@ -20,19 +18,15 @@ async fn main() -> Result<(), std::io::Error> {
     }
     tracing_subscriber::fmt::init();
 
-    let app_config = AppConfig::load("./config.json").await.expect("App config file not present!");
+    let app_config = AppConfig::load("../config.json").await.expect("App config file not present!");
 
-    let links = Arc::new(Mutex::new(HashMap::new()));
-    let qr_code_database = QrCodeDatabase {
-        links: links.clone(),
-    };
-    let qr_generator = QrCodeGenerator {
-        links,
-        image_base_path: Path::new("./").to_path_buf(),
-    };
+    let conn = Database::connect(&app_config.connection_string).await.unwrap();
+
+    let qr_code_database = QrCodeDatabase { db_conn: conn.clone() };
+    let qr_generator = QrCodeGenerator { db_conn: conn.clone(), image_base_path: app_config.image_url };
 
     let api_service = OpenApiService::new(
-        (HealthApi, RedirectApi, QrCodeApi, VersionApi),
+        (HealthApi, RedirectApi, QrCodeApi, VersionApi, ImageApi),
         "qrcode",
         "1.0",
     )

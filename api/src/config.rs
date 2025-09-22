@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -19,6 +19,7 @@ pub enum ConfigError {
 pub struct AppConfig {
     pub server_endpoint: String,
     pub connection_string: String,
+    pub image_url: PathBuf,
 }
 
 impl AppConfig {
