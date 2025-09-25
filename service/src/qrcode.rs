@@ -8,6 +8,7 @@ use image::{
     codecs::{jpeg::JpegEncoder, png::PngEncoder},
 };
 use qrcode::{QrCode, render::svg, types::QrError};
+use rand::{distr::Alphanumeric, Rng};
 use sea_orm::{ActiveModelTrait, ActiveValue::Set, DbConn, DbErr, EntityTrait};
 use thiserror::Error;
 use url::Url;
@@ -28,6 +29,14 @@ pub enum QrImageType {
     Png,
     Jpg,
     Svg,
+}
+
+fn generate_passphrase(len: usize) -> String {
+    rand::rng()
+        .sample_iter(&Alphanumeric)
+        .take(len)
+        .map(char::from)
+        .collect()
 }
 
 #[derive(Clone, Debug, Default)]
@@ -103,10 +112,12 @@ pub struct QrCodeDatabase {
 
 impl QrCodeDatabase {
     pub async fn create(&self, link: Url) -> Result<Model, DbErr> {
+        let passphrase = generate_passphrase(32);
+
         let qr_code = qr_code::ActiveModel {
             id: Set(uuid::Uuid::new_v4()),
             link: Set(link.to_string()),
-            passphrase: Set("TestPwd".to_string()),
+            passphrase: Set(passphrase),
             created_at: Set(Utc::now()),
             ..Default::default()
         }
