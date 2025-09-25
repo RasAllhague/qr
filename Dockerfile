@@ -8,23 +8,23 @@ COPY api/Cargo.toml api/Cargo.toml
 COPY service/Cargo.toml service/Cargo.toml
 COPY corelib/Cargo.toml corelib/Cargo.toml
 COPY entity/Cargo.toml entity/Cargo.toml
-COPY migrations/Cargo.toml migrations/Cargo.toml
+COPY migration/Cargo.toml migration/Cargo.toml
 COPY bot/Cargo.toml bot/Cargo.toml
 
 # Create dummy files to build deps
-RUN mkdir -p api/src service/src corelib/src entity/src migrations/src bot/src
+RUN mkdir -p api/src service/src corelib/src entity/src migration/src bot/src
 RUN echo 'fn main() {}' > api/src/main.rs
 RUN echo 'pub fn _x(){}' > service/src/lib.rs
 RUN echo 'pub fn _x(){}' > corelib/src/lib.rs
 RUN echo 'pub fn _x(){}' > entity/src/lib.rs
-RUN echo 'pub fn _x(){}' > migrations/src/lib.rs
+RUN echo 'pub fn _x(){}' > migration/src/lib.rs
 RUN echo 'fn main() {}' > bot/src/main.rs
 
 # Pre-build dependencies for faster incremental builds
 RUN cargo build -p api --release
 
 # 2) Now copy real source code
-RUN rm -rf api/src service/src corelib/src entity/src migrations/src bot/src
+RUN rm -rf api/src service/src corelib/src entity/src migration/src bot/src
 COPY . .
 RUN cargo build -p api --release
 
