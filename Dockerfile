@@ -1,4 +1,3 @@
-```
 # ---- build stage ----
 FROM rust:1.90.0-bookworm AS builder
 WORKDIR /app
@@ -56,5 +55,3 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s \
   CMD curl -fsS http://127.0.0.1:3000/api/health || exit 1
 
 ENTRYPOINT ["/app/entrypoint.sh"]
-
-```
