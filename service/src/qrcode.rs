@@ -63,7 +63,7 @@ impl QrCodeGenerator {
             return Ok(None);
         };
         
-        let code = QrCode::new(&format!("{}/redirect?id={}", self.server_url, qr_code.id))?;
+        let code = QrCode::new(&format!("{}/api/redirect?id={}", self.server_url, qr_code.id))?;
 
         let image = code.render::<Luma<u8>>().build();
         let height = image.height();
