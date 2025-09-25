@@ -1,0 +1,41 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    image: my-rust-api:latest
+    environment:
+      DATABASE_URL: "sqlite:///data/qrcode.db?mode=rwc"
+      SERVER_URL: "0.0.0.0:3000"
+      IMAGE_BASE_PATH: "/data/images"
+      DOMAIN_NAME: "rasalhague.de"
+      RUST_LOG: "info"
+    volumes:
+      - dbdata:/data
+    expose:
+      - "3000"
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    restart: unless-stopped
+
+  migrate:
+    image: my-rust-api:latest
+    profiles: ["tools"]           # won't start on `up`
+    environment:
+      DATABASE_URL: "sqlite:///data/qrcode.db?mode=rwc"
+    working_dir: /app             # << repo root so ./migration/Cargo.toml is found
+    entrypoint: ["sea-orm-cli", "migrate"]
+    command: ["status"]           # default; override on the CLI
+    volumes:
+      - dbdata:/data
+
+volumes:
+  dbdata:
