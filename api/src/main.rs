@@ -1,13 +1,17 @@
-mod services;
 mod config;
 mod pages;
+mod services;
 
 use migration::sea_orm::Database;
-use poem::{get, listener::TcpListener, middleware::Tracing, EndpointExt, Route, Server};
+use poem::{EndpointExt, Route, Server, get, listener::TcpListener, middleware::Tracing};
 use poem_openapi::OpenApiService;
 use service::{QrCodeDatabase, QrCodeGenerator};
 
-use crate::{config::AppConfig, pages::*, services::{HealthApi, ImageApi, QrCodeApi, RedirectApi, VersionApi}};
+use crate::{
+    config::AppConfig,
+    pages::*,
+    services::{HealthApi, ImageApi, QrCodeApi, RedirectApi, VersionApi},
+};
 
 pub static PACKAGE_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub static PACKAGE_NAME: &str = env!("CARGO_PKG_NAME");
@@ -19,12 +23,22 @@ async fn main() -> Result<(), std::io::Error> {
     }
     tracing_subscriber::fmt::init();
 
-    let app_config = AppConfig::load("../config.json").await.expect("App config file not present!");
+    let app_config = AppConfig::load("../config.json")
+        .await
+        .expect("App config file not present!");
 
-    let conn = Database::connect(&app_config.connection_string).await.unwrap();
+    let conn = Database::connect(&app_config.connection_string)
+        .await
+        .unwrap();
 
-    let qr_code_database = QrCodeDatabase { db_conn: conn.clone() };
-    let qr_generator = QrCodeGenerator { db_conn: conn.clone(), image_base_path: app_config.image_url };
+    let qr_code_database = QrCodeDatabase {
+        db_conn: conn.clone(),
+    };
+    let qr_generator = QrCodeGenerator {
+        db_conn: conn.clone(),
+        image_base_path: app_config.image_url,
+        server_url: format!("http://{}", app_config.server_endpoint),
+    };
 
     let api_service = OpenApiService::new(
         (HealthApi, RedirectApi, QrCodeApi, VersionApi, ImageApi),

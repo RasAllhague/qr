@@ -34,6 +34,7 @@ pub enum QrImageType {
 pub struct QrCodeGenerator {
     pub db_conn: DbConn,
     pub image_base_path: PathBuf,
+    pub server_url: String,
 }
 
 impl QrCodeGenerator {
@@ -61,17 +62,14 @@ impl QrCodeGenerator {
         let Some(qr_code) = DbQrCode::find_by_id(id).one(&self.db_conn).await? else {
             return Ok(None);
         };
-
-        let code = QrCode::new(qr_code.link)?;
+        
+        let code = QrCode::new(&format!("{}/redirect?id={}", self.server_url, qr_code.id))?;
 
         let image = code.render::<Luma<u8>>().build();
         let height = image.height();
         let width = image.width();
 
-        let mut path = self.image_base_path.clone();
-        path.push(format!("{}.png", id));
         let data = image.into_raw();
-
         let mut png_bytes = Vec::new();
 
         match image_type {
