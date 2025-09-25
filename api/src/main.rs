@@ -18,16 +18,16 @@ pub static PACKAGE_NAME: &str = env!("CARGO_PKG_NAME");
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
+    dotenvy::dotenv().unwrap();
+
     if std::env::var_os("RUST_LOG").is_none() {
         unsafe { std::env::set_var("RUST_LOG", "poem=debug") };
     }
     tracing_subscriber::fmt::init();
 
-    let app_config = AppConfig::load("../config.json")
-        .await
-        .expect("App config file not present!");
+    let app_config = AppConfig::from_env();
 
-    let conn = Database::connect(&app_config.connection_string)
+    let conn = Database::connect(&app_config.database_url)
         .await
         .unwrap();
 
@@ -36,8 +36,8 @@ async fn main() -> Result<(), std::io::Error> {
     };
     let qr_generator = QrCodeGenerator {
         db_conn: conn.clone(),
-        image_base_path: app_config.image_url,
-        server_url: format!("http://{}", app_config.server_endpoint),
+        image_base_path: app_config.image_base_path.into(),
+        server_url: format!("http://{}", app_config.domain_name),
     };
 
     let api_service = OpenApiService::new(
@@ -48,7 +48,7 @@ async fn main() -> Result<(), std::io::Error> {
     .server("/api");
     let ui = api_service.swagger_ui();
 
-    Server::new(TcpListener::bind(&app_config.server_endpoint))
+    Server::new(TcpListener::bind(&app_config.server_url))
         .run(
             Route::new()
                 .at("/", get(index_ui))

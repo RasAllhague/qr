@@ -129,6 +129,7 @@ version = "0.1.0"
 dependencies = [
  "askama",
  "chrono",
+ "dotenvy",
  "entity",
  "migration",
  "poem",

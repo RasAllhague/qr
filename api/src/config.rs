@@ -1,28 +1,20 @@
-use std::path::{Path, PathBuf};
+use std::env;
 
-use serde::{Deserialize, Serialize};
-use thiserror::Error;
-
-#[derive(Debug, Error)]
-pub enum ConfigError {
-    #[error("could not load app configuration file, {0}")]
-    LoadFailed(std::io::Error),
-    #[error("could not deserialize configuration, {0}")]
-    Deserialization(serde_json::error::Error),
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Debug, Clone)]
 pub struct AppConfig {
-    pub server_endpoint: String,
-    pub connection_string: String,
-    pub image_url: PathBuf,
+    pub database_url: String,
+    pub server_url: String,
+    pub image_base_path: String,
+    pub domain_name: String, // New field
 }
 
 impl AppConfig {
-    pub async fn load<P: AsRef<Path>>(path: P) -> Result<Self, ConfigError> {
-        let contents = tokio::fs::read_to_string(path)
-            .await
-            .map_err(|x| ConfigError::LoadFailed(x))?;
-        serde_json::de::from_str(&contents).map_err(|x| ConfigError::Deserialization(x))
+    pub fn from_env() -> Self {
+        Self {
+            database_url: env::var("DATABASE_URL").expect("DATABASE_URL must be set"),
+            server_url: env::var("SERVER_URL").unwrap_or_else(|_| "http://localhost:3000".to_string()),
+            image_base_path: env::var("IMAGE_BASE_PATH").unwrap_or_else(|_| "./images".to_string()),
+            domain_name: env::var("DOMAIN_NAME").unwrap_or_else(|_| "localhost".to_string()), // New field
+        }
     }
 }
