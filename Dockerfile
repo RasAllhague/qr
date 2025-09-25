@@ -1,5 +1,5 @@
 # ---- build stage ----
-FROM rust:1.80-bookworm AS builder
+FROM rust:1.90-bookworm AS builder
 WORKDIR /app
 
 # 1) Copy workspace manifests first (for layer caching)
