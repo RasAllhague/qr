@@ -11,6 +11,14 @@
       <label for="link">Url:</label>
       <input id="link" type="url" name="link" required />
     </div>
+    <div>
+      <label for="format">Format:</label>
+      <select id="format" name="format">
+        <option value="png" selected>PNG</option>
+        <option value="jpg">JPG</option>
+        <option value="svg">SVG</option>
+      </select>
+    </div>
     <button type="submit">Generate</button>
   </form>
 
@@ -34,27 +42,32 @@
 
     const fd = new FormData(form);
     const payload = { link: fd.get('link') };
+    const format = fd.get('format');
 
     try {
-      const createRes = await fetch(form.action, {
+      const res = await fetch(form.action, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'text/plain' },
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify(payload)
       });
 
-      if (!createRes.ok) {
-        const errText = await createRes.text().catch(() => '');
-        throw new Error(`Create failed: ${createRes.status} ${createRes.statusText} ${errText}`);
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        throw new Error(`Create failed: ${res.status} ${res.statusText} ${errText}`);
       }
 
-      const id = (await createRes.text()).trim();
-      statusEl.textContent = `ID: ${id}`;
-      imgEl.src = `/api/qr/${encodeURIComponent(id)}/image`;
+      const data = await res.json();
+      const id = data.id;
+      const passphrase = data.passphrase;
+
+      statusEl.textContent = `ID: ${id} ${passphrase ? `(password: ${passphrase})` : ''}`;
+
+      imgEl.src = `/api/image/${encodeURIComponent(id)}?img_type=${format}`;
 
       imgEl.onload = () => {
         imgEl.style.display = 'block';
         downloadBtn.style.display = 'inline-block';
-        statusEl.textContent = `QR ready (id: ${id})`;
+        statusEl.textContent += ' → QR ready';
       };
       imgEl.onerror = () => { statusEl.textContent = 'Could not load QR image.'; };
     } catch (err) {
@@ -65,7 +78,7 @@
   downloadBtn.addEventListener('click', () => {
     const link = document.createElement('a');
     link.href = imgEl.src;
-    link.download = 'qr-code.png';
+    link.download = 'qr-code.' + document.getElementById('format').value;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

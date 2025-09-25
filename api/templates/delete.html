@@ -1,8 +1,8 @@
 {% extends "_layout.html" %}
 
-{%- block title -%}Delete QR Code{%- endblock -%}
+{% block title %}Delete QR Code{% endblock %}
 
-{%- block content -%}
+{% block content %}
 <div class="container qr-page">
   <h1>Delete QR Code</h1>
 
@@ -17,6 +17,15 @@
       <input id="password" name="password" type="password" required />
     </div>
 
+    <div>
+      <label for="format">Format:</label>
+      <select id="format" name="format">
+        <option value="png" selected>PNG</option>
+        <option value="jpg">JPG</option>
+        <option value="svg">SVG</option>
+      </select>
+    </div>
+
     <button type="submit" class="btn-danger">Delete</button>
   </form>
 
@@ -28,11 +37,13 @@
   const form = document.getElementById('delete-form');
   const statusEl = document.getElementById('status');
   const imgEl = document.getElementById('qr-image');
+  const idInput = document.getElementById('id');
+  const formatInput = document.getElementById('format');
 
-  document.getElementById('id').addEventListener('change', () => {
-    const id = document.getElementById('id').value.trim();
+  idInput.addEventListener('change', () => {
+    const id = idInput.value.trim();
     if (!id) return;
-    imgEl.src = `/api/qr/${encodeURIComponent(id)}/image?cb=` + Date.now();
+    imgEl.src = `/api/image/${encodeURIComponent(id)}?img_type=${formatInput.value}&cb=` + Date.now();
     imgEl.onload = () => imgEl.style.display = 'block';
     imgEl.onerror = () => imgEl.style.display = 'none';
   });
@@ -42,7 +53,7 @@
     statusEl.textContent = 'Deleting…';
     imgEl.style.display = 'none';
 
-    const id = document.getElementById('id').value.trim();
+    const id = idInput.value.trim();
     const password = document.getElementById('password').value;
 
     try {
@@ -62,4 +73,4 @@
     }
   });
 </script>
-{%- endblock -%}
+{% endblock %}

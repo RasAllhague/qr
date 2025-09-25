@@ -32,6 +32,7 @@ enum ImageResponse {
 }
 
 #[derive(Clone, Copy, Deserialize, Debug, PartialEq, Eq, Enum)]
+#[oai(rename_all = "lowercase")]
 enum ImageType {
     Png,
     Jpg,

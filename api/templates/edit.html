@@ -1,8 +1,8 @@
 {% extends "_layout.html" %}
 
-{%- block title -%}Edit QR Code{%- endblock -%}
+{% block title %}Edit QR Code{% endblock %}
 
-{%- block content -%}
+{% block content %}
 <div class="container qr-page">
   <h1>Edit QR Code</h1>
 
@@ -20,6 +20,15 @@
     <div>
       <label for="password">Password</label>
       <input id="password" name="password" type="password" required />
+    </div>
+
+    <div>
+      <label for="format">Format:</label>
+      <select id="format" name="format">
+        <option value="png" selected>PNG</option>
+        <option value="jpg">JPG</option>
+        <option value="svg">SVG</option>
+      </select>
     </div>
 
     <button type="submit">Update</button>
@@ -59,11 +68,12 @@
       if (!res.ok) throw new Error(`${res.status} ${res.statusText}: ${text}`);
 
       statusEl.textContent = 'Updated successfully (id: ' + text.trim() + ').';
-      imgEl.src = `/api/qr/${encodeURIComponent(id)}/image?cb=` + Date.now();
+      const format = document.getElementById('format').value;
+      imgEl.src = `/api/image/${encodeURIComponent(id)}?img_type=${format}&cb=` + Date.now();
       imgEl.onload = () => imgEl.style.display = 'block';
     } catch (err) {
       statusEl.textContent = 'Update failed: ' + (err.message || String(err));
     }
   });
 </script>
-{%- endblock -%}
+{% endblock %}

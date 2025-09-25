@@ -11,6 +11,14 @@
       <label for="id">QR Code ID</label>
       <input id="id" name="id" required />
     </div>
+    <div>
+      <label for="format">Format:</label>
+      <select id="format" name="format">
+        <option value="png" selected>PNG</option>
+        <option value="jpg">JPG</option>
+        <option value="svg">SVG</option>
+      </select>
+    </div>
     <button type="submit">Show</button>
   </form>
 
@@ -25,33 +33,32 @@
   const imgEl = document.getElementById('qr-image');
   const downloadBtn = document.getElementById('download-btn');
   const idInput = document.getElementById('id');
+  const formatInput = document.getElementById('format');
 
-  // Optional: show image live as the user pastes an ID and blurs the field
   idInput.addEventListener('change', () => {
     if (!idInput.value.trim()) return;
-    loadImage(idInput.value.trim());
+    loadImage(idInput.value.trim(), formatInput.value);
   });
 
   form.addEventListener('submit', (e) => {
     e.preventDefault();
-    loadImage(idInput.value.trim());
+    loadImage(idInput.value.trim(), formatInput.value);
   });
 
-  async function loadImage(id) {
+  function loadImage(id, format) {
     statusEl.textContent = 'Loading…';
     imgEl.style.display = 'none';
     downloadBtn.style.display = 'none';
     imgEl.removeAttribute('src');
 
-    // Point <img> directly to the image endpoint
-    imgEl.src = `/api/qr/${encodeURIComponent(id)}/image?cb=` + Date.now();
+    imgEl.src = `/api/image/${encodeURIComponent(id)}?img_type=${format}&cb=` + Date.now();
 
     imgEl.onload = () => {
       imgEl.style.display = 'block';
       downloadBtn.style.display = 'inline-block';
       statusEl.textContent = `QR loaded (id: ${id})`;
     };
-    imgEl.onerror = async () => {
+    imgEl.onerror = () => {
       statusEl.textContent = 'Not found or failed to load image.';
       imgEl.style.display = 'none';
     };
@@ -60,7 +67,7 @@
   downloadBtn.addEventListener('click', () => {
     const link = document.createElement('a');
     link.href = imgEl.src;
-    link.download = 'qr-code.png';
+    link.download = 'qr-code.' + formatInput.value;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
