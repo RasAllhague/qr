@@ -18,7 +18,7 @@ pub static PACKAGE_NAME: &str = env!("CARGO_PKG_NAME");
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    dotenvy::dotenv().unwrap();
+    dotenvy::dotenv();
 
     if std::env::var_os("RUST_LOG").is_none() {
         unsafe { std::env::set_var("RUST_LOG", "poem=debug") };
