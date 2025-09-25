@@ -17,4 +17,4 @@ else
 fi
 
 echo "[entrypoint] starting API..."
-exec /app/api
+exec /app/bin/api

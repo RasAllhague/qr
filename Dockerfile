@@ -35,11 +35,16 @@ FROM debian:bookworm-slim AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl bash && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
-COPY --from=builder /app/target/release/api /app/api
+# Put the binary under /app/bin instead of /app/api
+RUN mkdir -p /app/bin
+COPY --from=builder /app/target/release/api /app/bin/api
+
 COPY --from=builder /usr/local/cargo/bin/sea-orm-cli /usr/local/bin/sea-orm-cli
 
-# Copy migration crate if you want to run directory-based migrations
+# Copy migration crate (if directory-based)
 COPY migration /app/migration
+
+# Copy templates (optional, Askama usually embeds at compile time)
 COPY api/templates /app/api/templates
 
 COPY entrypoint.sh /app/entrypoint.sh
