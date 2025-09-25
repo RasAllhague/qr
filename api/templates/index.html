@@ -1,0 +1,69 @@
+{% extends "_layout.html" %}
+
+{% block title %}QR Viewer{% endblock %}
+
+{% block content %}
+<div class="container qr-page">
+  <h1>View QR Code</h1>
+
+  <form id="view-form" autocomplete="off">
+    <div>
+      <label for="id">QR Code ID</label>
+      <input id="id" name="id" required />
+    </div>
+    <button type="submit">Show</button>
+  </form>
+
+  <div id="status"></div>
+  <img id="qr-image" alt="QR code" style="display:none;" />
+  <button id="download-btn" style="display:none;">Download QR Code</button>
+</div>
+
+<script>
+  const form = document.getElementById('view-form');
+  const statusEl = document.getElementById('status');
+  const imgEl = document.getElementById('qr-image');
+  const downloadBtn = document.getElementById('download-btn');
+  const idInput = document.getElementById('id');
+
+  // Optional: show image live as the user pastes an ID and blurs the field
+  idInput.addEventListener('change', () => {
+    if (!idInput.value.trim()) return;
+    loadImage(idInput.value.trim());
+  });
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    loadImage(idInput.value.trim());
+  });
+
+  async function loadImage(id) {
+    statusEl.textContent = 'Loading…';
+    imgEl.style.display = 'none';
+    downloadBtn.style.display = 'none';
+    imgEl.removeAttribute('src');
+
+    // Point <img> directly to the image endpoint
+    imgEl.src = `/api/qr/${encodeURIComponent(id)}/image?cb=` + Date.now();
+
+    imgEl.onload = () => {
+      imgEl.style.display = 'block';
+      downloadBtn.style.display = 'inline-block';
+      statusEl.textContent = `QR loaded (id: ${id})`;
+    };
+    imgEl.onerror = async () => {
+      statusEl.textContent = 'Not found or failed to load image.';
+      imgEl.style.display = 'none';
+    };
+  }
+
+  downloadBtn.addEventListener('click', () => {
+    const link = document.createElement('a');
+    link.href = imgEl.src;
+    link.download = 'qr-code.png';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,271 @@
+/* Root theme tokens */
+:root {
+  --bg: #0f1115;
+  --panel: #151823;
+  --text: #e6e8ee;
+  --muted: #9aa3b2;
+  --brand: #6ea8fe;
+  --brand-contrast: #0b1b3a;
+  --accent: #7fe3d4;
+  --border: #2a3142;
+
+  --radius: 16px;
+  --shadow: 0 8px 24px rgba(0,0,0,.3);
+
+  --space-1: .25rem;
+  --space-2: .5rem;
+  --space-3: .75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+
+  --font: system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial, "Segoe UI Emoji", "Apple Color Emoji", sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font);
+  color: var(--text);
+  background: linear-gradient(180deg, #0b0d12 0%, #111522 100%);
+  line-height: 1.5;
+
+  /* ===== Use grid to anchor footer at bottom ===== */
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto; /* header | main | footer */
+}
+
+/* Containers */
+.container {
+  width: 100%; /* ensures container spans full row */
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+}
+
+/* Navbar */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  backdrop-filter: saturate(140%) blur(10px);
+  background: color-mix(in oklab, var(--panel) 92%, transparent);
+  border-bottom: 1px solid var(--border);
+}
+.nav__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--space-3) var(--space-4);
+}
+.nav__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 600;
+}
+.nav__logo {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--brand) 0%, var(--accent) 100%);
+  color: var(--brand-contrast);
+  box-shadow: var(--shadow);
+  font-size: 18px;
+}
+.nav__brand-text { letter-spacing: .2px; }
+
+/* Mobile toggle (checkbox hack) */
+.nav__toggle { display: none; }
+.nav__hamburger {
+  display: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.nav__bar {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--text);
+  position: relative;
+}
+.nav__bar + .nav__bar { margin-top: 5px; }
+
+/* Links */
+.nav__links {
+  display: flex;
+  gap: var(--space-3);
+}
+.nav__links a {
+  text-decoration: none;
+  color: var(--text);
+  padding: .55rem .8rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+.nav__links a:hover {
+  background: color-mix(in oklab, var(--brand) 18%, transparent);
+  border-color: color-mix(in oklab, var(--brand) 35%, var(--border));
+}
+.nav__links a[aria-current="page"] {
+  background: color-mix(in oklab, var(--brand) 30%, transparent);
+  border-color: color-mix(in oklab, var(--brand) 50%, var(--border));
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--brand) 70%, transparent);
+}
+
+/* Responsive nav */
+@media (max-width: 760px) {
+  .nav__hamburger { display: inline-flex; }
+  .nav__links {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: var(--space-4);
+    left: var(--space-4);
+    display: grid;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    transform-origin: top right;
+    transform: scale(.98);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s, transform .2s;
+  }
+  .nav__toggle:checked ~ .nav__links {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+  }
+}
+
+/* Main content cards, forms, helpers */
+main {
+  display: block;
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+main.container {
+  padding-top: var(--space-6);
+  padding-bottom: var(--space-6);
+}
+h1, h2, h3 {
+  margin: 0 0 var(--space-4) 0;
+  line-height: 1.2;
+}
+form {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-5);
+  box-shadow: var(--shadow);
+  max-width: 640px;
+}
+label { display: block; margin-bottom: var(--space-2); color: var(--muted); }
+input, textarea, select, button {
+  width: 100%;
+  padding: .7rem .8rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #0e1220;
+  color: var(--text);
+  outline: none;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: color-mix(in oklab, var(--brand) 60%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand) 20%, transparent);
+}
+button {
+  background: linear-gradient(135deg, var(--brand) 0%, var(--accent) 100%);
+  color: var(--brand-contrast);
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  margin-top: var(--space-4);
+}
+button:hover { filter: brightness(1.05); }
+button[disabled] {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
+/* Image preview */
+img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+/* Footer */
+.footer {
+  border-top: 1px solid var(--border);
+  background: color-mix(in oklab, var(--panel) 92%, transparent);
+}
+.footer__inner {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) 0;
+  color: var(--muted);
+  font-size: .95rem;
+}
+.footer__sep { opacity: .5; }
+.footer__link {
+  color: var(--muted);
+  text-decoration: none;
+}
+.footer__link:hover { color: var(--text); }
+
+/* Utilities */
+.mt-2 { margin-top: var(--space-2); }
+.mt-3 { margin-top: var(--space-3); }
+.mt-4 { margin-top: var(--space-4); }
+.center { text-align: center; }
+
+/* ===== QR Generator page ===== */
+.qr-page h1 {
+  text-align: center;
+  margin-bottom: var(--space-5);
+  font-size: clamp(1.8rem, 3.5vw, 2.2rem);
+  background: linear-gradient(135deg, var(--brand) 0%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.qr-page form {
+  margin: 0 auto;
+  max-width: 640px; /* widen slightly from 520px */
+}
+.qr-page #status {
+  text-align: center;
+  margin-top: var(--space-4);
+  color: var(--muted);
+  font-size: 0.95rem;
+  min-height: 1.2em;
+}
+.qr-page #qr-image {
+  display: block;
+  margin: var(--space-5) auto 0;
+  max-width: 260px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}

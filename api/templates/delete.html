@@ -1,0 +1,65 @@
+{% extends "_layout.html" %}
+
+{%- block title -%}Delete QR Code{%- endblock -%}
+
+{%- block content -%}
+<div class="container qr-page">
+  <h1>Delete QR Code</h1>
+
+  <form id="delete-form" autocomplete="off">
+    <div>
+      <label for="id">QR Code ID</label>
+      <input id="id" name="id" required />
+    </div>
+
+    <div>
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" required />
+    </div>
+
+    <button type="submit" class="btn-danger">Delete</button>
+  </form>
+
+  <div id="status"></div>
+  <img id="qr-image" alt="QR code" style="display:none;" />
+</div>
+
+<script>
+  const form = document.getElementById('delete-form');
+  const statusEl = document.getElementById('status');
+  const imgEl = document.getElementById('qr-image');
+
+  document.getElementById('id').addEventListener('change', () => {
+    const id = document.getElementById('id').value.trim();
+    if (!id) return;
+    imgEl.src = `/api/qr/${encodeURIComponent(id)}/image?cb=` + Date.now();
+    imgEl.onload = () => imgEl.style.display = 'block';
+    imgEl.onerror = () => imgEl.style.display = 'none';
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    statusEl.textContent = 'Deleting…';
+    imgEl.style.display = 'none';
+
+    const id = document.getElementById('id').value.trim();
+    const password = document.getElementById('password').value;
+
+    try {
+      const res = await fetch(`/api/qr/${encodeURIComponent(id)}/${encodeURIComponent(password)}`, {
+        method: 'DELETE',
+        headers: { 'Accept': 'text/plain' }
+      });
+
+      if (res.status === 200) {
+        statusEl.textContent = 'Deleted.';
+      } else {
+        const t = await res.text().catch(() => '');
+        statusEl.textContent = `Delete failed: ${res.status} ${res.statusText} ${t}`;
+      }
+    } catch (err) {
+      statusEl.textContent = 'Delete failed: ' + (err.message || String(err));
+    }
+  });
+</script>
+{%- endblock -%}

@@ -1,0 +1,74 @@
+{% extends "_layout.html" %}
+
+{% block title %}Create QR Code{% endblock %}
+
+{% block content %}
+<div class="container qr-page">
+  <h1>Create QR Code</h1>
+
+  <form id="qr-form" autocomplete="off" action="/api/qr">
+    <div>
+      <label for="link">Url:</label>
+      <input id="link" type="url" name="link" required />
+    </div>
+    <button type="submit">Generate</button>
+  </form>
+
+  <div id="status"></div>
+  <img id="qr-image" alt="QR code" style="display:none;" />
+  <button id="download-btn" style="display:none;">Download QR Code</button>
+</div>
+
+<script>
+  const form = document.getElementById('qr-form');
+  const statusEl = document.getElementById('status');
+  const imgEl = document.getElementById('qr-image');
+  const downloadBtn = document.getElementById('download-btn');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    statusEl.textContent = 'Creating QR…';
+    imgEl.style.display = 'none';
+    imgEl.removeAttribute('src');
+    downloadBtn.style.display = 'none';
+
+    const fd = new FormData(form);
+    const payload = { link: fd.get('link') };
+
+    try {
+      const createRes = await fetch(form.action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'text/plain' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!createRes.ok) {
+        const errText = await createRes.text().catch(() => '');
+        throw new Error(`Create failed: ${createRes.status} ${createRes.statusText} ${errText}`);
+      }
+
+      const id = (await createRes.text()).trim();
+      statusEl.textContent = `ID: ${id}`;
+      imgEl.src = `/api/qr/${encodeURIComponent(id)}/image`;
+
+      imgEl.onload = () => {
+        imgEl.style.display = 'block';
+        downloadBtn.style.display = 'inline-block';
+        statusEl.textContent = `QR ready (id: ${id})`;
+      };
+      imgEl.onerror = () => { statusEl.textContent = 'Could not load QR image.'; };
+    } catch (err) {
+      statusEl.textContent = err.message || String(err);
+    }
+  });
+
+  downloadBtn.addEventListener('click', () => {
+    const link = document.createElement('a');
+    link.href = imgEl.src;
+    link.download = 'qr-code.png';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  });
+</script>
+{% endblock %}

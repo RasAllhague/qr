@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>{% block title %}{% endblock %}</title>
+
+    <meta http-equiv="expires" content="Sat, 01 Dec 2001 00:00:00 GMT" />
+    <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="pragma" content="no-cache" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+
+    <style>
+        /*<![CDATA[*/
+            {% include "_layout.css" %}
+        /*]]>*/
+    </style>
+</head>
+
+<body>
+    <header class="nav">
+        <div class="nav__inner">
+            <a class="nav__brand" href="/" aria-label="Home">
+                <span class="nav__logo" aria-hidden="true">▦</span>
+                <span class="nav__brand-text">QR Service</span>
+            </a>
+
+            <!-- Mobile menu toggle (CSS-only) -->
+            <input type="checkbox" id="nav-toggle" class="nav__toggle" aria-hidden="true" />
+            <label for="nav-toggle" class="nav__hamburger" aria-label="Toggle navigation">
+                <span class="nav__bar"></span>
+                <span class="nav__bar"></span>
+                <span class="nav__bar"></span>
+            </label>
+
+            <nav class="nav__links" aria-label="Primary">
+                <a href="/" {% if current=="home" %}aria-current="page" {% endif %}>Home</a>
+                <a href="/new" {% if current=="new" %}aria-current="page" {% endif %}>New</a>
+                <a href="/edit" {% if current=="edit" %}aria-current="page" {% endif %}>Edit</a>
+                <a href="/delete" {% if current=="delete" %}aria-current="page" {% endif %}>Delete</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="container footer__inner">
+            <span>&copy; {{ year }} QR Service</span>
+            <span class="footer__sep">&middot;</span>
+            <a href="/" class="footer__link">Home</a>
+            <span class="footer__sep">&middot;</span>
+            <a href="/impressum" class="footer__link">Impressum / Legal Notice</a>
+            <span class="footer__sep">&middot;</span>
+            <a href="/privacy" class="footer__link">Datenschutz / Privacy</a>
+        </div>
+    </footer>
+
+</body>
+
+</html>

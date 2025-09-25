@@ -1,0 +1,69 @@
+{% extends "_layout.html" %}
+
+{%- block title -%}Edit QR Code{%- endblock -%}
+
+{%- block content -%}
+<div class="container qr-page">
+  <h1>Edit QR Code</h1>
+
+  <form id="edit-form" autocomplete="off">
+    <div>
+      <label for="id">QR Code ID</label>
+      <input id="id" name="id" required />
+    </div>
+
+    <div>
+      <label for="link">New URL</label>
+      <input id="link" name="link" type="url" required />
+    </div>
+
+    <div>
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" required />
+    </div>
+
+    <button type="submit">Update</button>
+  </form>
+
+  <div id="status"></div>
+  <img id="qr-image" alt="QR code" style="display:none;" />
+</div>
+
+<script>
+  const form = document.getElementById('edit-form');
+  const statusEl = document.getElementById('status');
+  const imgEl = document.getElementById('qr-image');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    statusEl.textContent = 'Updating…';
+    imgEl.style.display = 'none';
+
+    const id = document.getElementById('id').value.trim();
+    const payload = {
+      link: (new URL(document.getElementById('link').value)).toString(),
+      password: document.getElementById('password').value
+    };
+
+    try {
+      const res = await fetch(`/api/qr/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'text/plain'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const text = await res.text();
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}: ${text}`);
+
+      statusEl.textContent = 'Updated successfully (id: ' + text.trim() + ').';
+      imgEl.src = `/api/qr/${encodeURIComponent(id)}/image?cb=` + Date.now();
+      imgEl.onload = () => imgEl.style.display = 'block';
+    } catch (err) {
+      statusEl.textContent = 'Update failed: ' + (err.message || String(err));
+    }
+  });
+</script>
+{%- endblock -%}
