@@ -1,13 +1,15 @@
-version: "3.9"
-
-services: 
+services:
   api:
     build:
       context: .
       dockerfile: Dockerfile
-    image: qr-api:latest
+    container_name: qr-api
     environment:
-      - RUST_LOG=${RUST_LOG:-info}
+      RUST_LOG: ${RUST_LOG:-info}
+      DATABASE_URL: ${DATABASE_URL:-sqlite:///data/qr.db}
+    volumes:
+      - ./migration:/app/migration:ro
+      - ./data:/data
     expose:
       - "3000"
     restart: unless-stopped
