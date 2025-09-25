@@ -6,7 +6,7 @@ echo "[entrypoint] starting container..."
 if [[ -n "${DATABASE_URL:-}" ]]; then
   if [[ -d "/app/migration" ]]; then
     echo "[entrypoint] running SeaORM migrations..."
-    sea-orm-cli migrate up -d /app/migration || {
+    sea-orm-cli migrate up || {
       echo "[entrypoint] migration failed"; exit 1;
     }
   else
